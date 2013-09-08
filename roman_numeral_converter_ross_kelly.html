@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta
+    http-equiv="Content-Type"
+    content="text/html; charset=ISO-8859-1">
+        <title>
+            Ross Kelly Roman Numeral Converter
+        </title>
+        <script>
+//This is the class which holds all the functions needed to calculare the roman numeral from a given integer
+function romanNumeralGernerator(){
+            //This array will hold the properties of the individual roman numerals.
+            this.roman_numerals = new Array();
+            
+            //Array indices relating to the roman numeral
+            this.I = 0;
+            this.V = 1;
+            this.X = 2;
+            this.L = 3;
+            this.C = 4;
+            this.D = 5;
+            this.M = 6;
+            
+            //Set up the array that holds the roman numerals and their integer values.
+            this.roman_numerals[this.I] = array = { "numeral": "I", "value": 1 };
+            this.roman_numerals[this.V] = array = { "numeral": "V", "value": 5 };
+            this.roman_numerals[this.X] = array = { "numeral": "X", "value": 10};
+            this.roman_numerals[this.L] = array = { "numeral": "L", "value": 50 };
+            this.roman_numerals[this.C] = array = { "numeral": "C", "value": 100 };
+            this.roman_numerals[this.D] = array = { "numeral": "D", "value": 500 };
+            this.roman_numerals[this.M] = array = { "numeral": "M", "value": 1000 };
+
+        //Use the numeral finding function to get roman numeral equivalent of an integer
+        //This function works by taking the integer passed (eg. 1982) and starting at the right
+        //to get the roman numeral value for the 'singles' column (in 1982, this would be the '2').
+        //Once this has been done, it gets the roman numeral for the 'tens' column (which
+        //would be '80' in our example.
+        //it does this for the hundreds and thousands, then joins the results together to create the final roman numeral.
+        this.generate = function(number){
+            //The initial value passed to the function
+            var init_value = number;
+
+            //Initialize string to hold the roman numerals for the 'singles' column
+            var s_c = "";
+            var res = this.getNumeralCount(init_value, this.V, 1);
+            s_c = res["numerals"];
+
+            //If there's still something left in the column, find the lower number
+            if(res["remaining"] > 0){
+                var res = this.getNumeralCount(res["remaining"], this.I, 1);
+                s_c += res["numerals"];
+            }
+
+            //Initialize string to hold the roman numerals for the 'tens' column
+            var t_c = "";
+            var res = this.getNumeralCount(init_value, this.L, 2);
+            t_c = res["numerals"];
+
+            if(res["remaining"] > 0){
+                var res = this.getNumeralCount(res["remaining"], this.X, 2);
+                t_c += res["numerals"];
+            }
+
+            //Initialize string to hold the roman numerals for the 'hundreds' column
+            var h_c = "";
+            var res = this.getNumeralCount(init_value, this.D, 3);
+            h_c = res["numerals"];
+
+            if(res["remaining"] > 0){
+                var res = this.getNumeralCount(res["remaining"], this.C, 3);
+                h_c += res["numerals"];
+            }
+
+            //Finally calculate the thousands
+            var th_c = "";
+            var res = this.getNumeralCount(init_value, this.M, 4);
+            th_c = res["numerals"];
+
+            //Now construct the final string.
+            //Start by adding the result for the thousands column, then the hundreds, tens then singles.
+            var result_string = th_c + h_c + t_c + s_c;
+
+            return result_string;
+        };
+        
+        //This calculates the number of occurrneces of the roman numeral in the value
+        this.getNumeralCount = function(init_value, numeral_value, pos) {
+            var numeral_details = (numeral_value < 0) ? this.roman_numerals[0] : this.roman_numerals[numeral_value]
+
+            //Get the details of the roman numeral being used to analyze the number
+            var numeral = numeral_details["numeral"];
+            var base = numeral_details["value"];
+
+            //The array that is to be returned
+            var res = new Array();
+            //This bit holds the roman numerals to be added to the final string
+            res["numerals"] = "";
+            //this is the remainder that is left after analyzing for the given numeral (numeral_value)
+            res["remaining"] = 0;
+
+            //Get the rounded number of the value
+            var value = this.getRoundedNumber(init_value, pos);
+
+            //If there is no value in this position in the number (eg. the 0 in 503), 
+            //then there are no numerals to add and the remaining value to calculate
+            //is just what was passed.
+            if (value === 0) {
+                res = new Array();
+                res["numerals"] = "";
+                res["remaining"] = init_value;
+                return res
+            }
+
+            //This bit decides whether to use subtractive principle in order to 
+            //display the roman numeral (eg. IX for 9, not VIIII)
+
+            //We need to know what the value of the numeral above the one we're using is
+            var next_base = (typeof this.roman_numerals[numeral_value + 1] !== "undefined") ? this.roman_numerals[numeral_value + 1]["value"] : false;
+
+            //If there is a number above (ie. we're not analyzing for M), then decide if the 
+            //integer being analyzed is within a threshold to trigger subtractuve principle
+            //The 0.7 is not the best number available. I just changed it from 0.5 to 0.7 because
+            //it gave better results over a wider range of input values.
+            if (next_base && value > (base + (0.7 * (next_base - base)))) {
+                //Do subtractive things to get the numeral string!
+
+                //We need to get the difference between the current value and the base above.
+                var remainder = next_base - value;
+
+                //the roman numeral equivalent of this remainder
+                res = this.getNumeralCount(remainder, numeral_value-1, pos);
+
+                var next_numeral_details = this.roman_numerals[numeral_value + 1]
+                var numeral = next_numeral_details["numeral"];
+
+                //add the remainder calculated roman numeral equivalent to the 
+                //results string BEFORE the larger one obtained from the next roman
+                //numeral above.
+                res["numerals"] = res["numerals"] + numeral;
+                res["remaining"] = init_value - value;
+            } else {
+                //There is no subtractive principle to bother about, so just count the 
+                //number of times the numeral value has to be shown in the final result string
+                
+                //count is the numer of times the numeral is to be shown
+                var count = Math.floor(value / base);
+                var numerals_string = "";
+                
+                //If there are no occurrences, the remainder value is the one being calculated
+                res["remaining"] = value;
+
+                for (var i = 0; i < count; i++) {
+                    numerals_string = numerals_string.concat(numeral);
+                    
+                    //if there are ocurrences, take away the value of the numeral from the remainder
+                    res["remaining"] = res["remaining"] - base;
+                }
+                
+                //add the numerals to the 
+                res["numerals"] = numerals_string;
+            }
+            
+            //return the result array
+            return res;
+        };
+
+        //Gets number rounded, eg. 546 rounded to pos 3 would be 500, to pos 2 would be 40, pos 1 = 6.
+        this.getRoundedNumber = function(init_value, pos){
+            var value = "" + init_value + "";
+
+            value = (1-pos === 0) ? value.slice(0-pos) : value.slice(0-pos, 1-pos);
+
+            for(var x=1;x<pos;x++){ value += "0"}
+
+            value = parseInt(value);
+
+            return value;
+        };
+}
+                    
+                </script>
+</head>
+
+<body>
+    <h2>Roman numeral generator</h2>
+    <p>This page contains a Javascript class that generates the roman numeral equivalent for a given integer.</p>
+    <div id='output'></div>
+    <p><br /><br />By Ross Kelly, 2013. mail@rosswritescode.com</p>
+        <script>
+testFunction(1, "I");
+testFunction(5, "V");
+testFunction(4, "IV");
+testFunction(6, "VI");
+testFunction(9, "IX");
+testFunction(7, "VII");
+testFunction(99, "XCIX");
+testFunction(51, "LI");
+testFunction(45, "XLV");
+testFunction(81, "LXXXI");
+testFunction(157, "CLVII");
+testFunction(2653, "MMDCLIII");
+testFunction(3999, "MMMCMXCIX");
+
+function testFunction(value, expected){
+    var numeralGenerator = new romanNumeralGernerator();
+    var result = numeralGenerator.generate(value);
+    var msg = "";
+    
+    if(result === expected){
+        msg = "Passed";
+    }else{
+        msg = "<B>Fail - Should be "+expected +"</b>";
+    }
+    
+    showOutput("Input: " + value + " >> Res: "+result + " &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Test: " + msg);
+    showOutput("")
+}
+
+
+
+
+
+function showOutput(output){
+    var lbreak = "<br />";
+    document.getElementById("output").innerHTML = document.getElementById("output").innerHTML  + lbreak + output;
+}
+        </script>
+</body>
+
+</html>
